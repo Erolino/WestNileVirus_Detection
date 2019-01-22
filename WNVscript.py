@@ -151,6 +151,7 @@ def wetbulb(tavg,dp,wb):
 sptrainW1['Tavg']=sptrainW1['Tavg'].astype(int) ## numbers are stored as str - so turn to int, to manipulate 
 # applying it to the df:  
 sptrainW1['WetBulb']=sptrainW1.apply(lambda x: wetbulb(x['Tavg'],x['DewPoint'],x['WetBulb']),axis=1)
+sptrainW1['WetBulb']=sptrainW1['WetBulb'].astype(int)
 ## continuing switching str into int in other columns
 sptrainW1['Heat']=sptrainW1['Heat'].astype(int)
 sptrainW1['Cool']=sptrainW1['Cool'].astype(int)
@@ -183,3 +184,43 @@ sptrainW1['StnPressure']=sptrainW1['StnPressure'].apply(lambda x: moud if x=='M'
 sptrainW1['StnPressure']=sptrainW1['StnPressure'].astype(float)
 # Sealevel
 sptrainW1['SeaLevel']=sptrainW1['SeaLevel'].astype(float)
+## 'ResultSpeed', 'ResultDir' are good to go (floats no missing value)
+sptrainW1['AvgSpeed']=sptrainW1['AvgSpeed'].astype(float) # turn to float
+# date of colletion
+# let's split the date to day of the month, day of the week, month, year 
+sptrainW1['Day_of_month']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().day)
+sptrainW1['month']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().month)
+sptrainW1['year']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().year)
+sptrainW1['Day_of_week']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().weekday())
+sptrainW1['year']=sptrainW1['year']-(min(sptrainW1['year'])+1)
+
+## df almost ready. Let's arange and drop columns:
+sptrainW1.drop(['count','Block','min', 'max','ptp','Address',
+                'Street','Trap','AddressNumberAndStreet','CodeSum','delmin', 'delmax'],axis=1,inplace=True)
+
+## most recent spray (days)" feature is really effecting the feature space (because of the 
+ ## majority of fabricated 3500 days). let's turn this column into 3 categories: 
+ ## recently sprayed (this season <180 days), sprayed 2 yrs ago, and never sprayed (=3650).
+mid=sptrainW1['most_recent_spray_(days)'][(
+        sptrainW1['most_recent_spray_(days)']<3650)&(sptrainW1['most_recent_spray_(days)']>180)]
+sptrainW1['sprayed_2_yrs_ago']=sptrainW1['most_recent_spray_(days)'].apply(lambda x: 1 if sum(x==mid)>0 else 0)
+sptrainW1['never_sprayed']=sptrainW1['most_recent_spray_(days)'].apply(lambda x: 1 if x>3640 else 0)    
+    
+sptrainW2=sptrainW1.copy()
+sptrainW2=sptrainW2[['Longitude', 'Latitude', 'Date_of_collection', 'AddressAccuracy',
+       'NumMosquitos', 'Species_CULEX PIPIENS',
+       'Species_CULEX PIPIENS/RESTUANS', 'Species_CULEX RESTUANS',
+       'Species_CULEX SALINARIUS', 'Species_CULEX TARSALIS',
+       'Species_CULEX TERRITANS', 'most_recent_spray_(days)',
+       'Recently_sprayed', 'Station', 'Tmax', 'Tmin', 'Tavg', 'DewPoint',
+       'WetBulb', 'Heat', 'Cool', 'PrecipTotal', 'StnPressure', 'SeaLevel',
+       'ResultSpeed', 'ResultDir', 'AvgSpeed', 'weather_type_Norm',
+       'Day_of_month', 'month', 'year', 'Day_of_week', 'sprayed_2_yrs_ago',
+       'never_sprayed', 'WnvPresent']]
+
+'''###################################
+
+Weather - 2 weeks feature engineering 
+
+#####################################"
+
