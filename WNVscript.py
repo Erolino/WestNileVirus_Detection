@@ -153,7 +153,7 @@ sptrainW1['Tavg']=sptrainW1['Tavg'].astype(int) ## numbers are stored as str - s
 sptrainW1['WetBulb']=sptrainW1.apply(lambda x: wetbulb(x['Tavg'],x['DewPoint'],x['WetBulb']),axis=1)
 sptrainW1['WetBulb']=sptrainW1['WetBulb'].astype(int)
 ## continuing switching str into int in other columns
-sptrainW1['Heat']=sptrainW1['Heat'].astype(int)
+sptrainW1['Heat']=sptrainW1['Heatweather'].astype(int)
 sptrainW1['Cool']=sptrainW1['Cool'].astype(int)
 sptrainW1.drop(['Sunrise','Sunset'],1,inplace=True) ## mostly empty
 #Function to turn codes into 2 groups good (' ') and bad weather ( all other codes)
