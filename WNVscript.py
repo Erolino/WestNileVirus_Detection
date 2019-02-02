@@ -225,6 +225,10 @@ Weather - 2 weeks feature engineering
 
 #####################################" '''
 
+####
+def weath_eng(weather_raw):
+###
+
 W1=weather.copy()
 
 W1.drop(['Depart',],1,inplace=True)# Depart - # Most is M missing (8223), so droping that column
@@ -257,16 +261,27 @@ def wetbulb(tavg,dp,wb):
 W1['WetBulb']=W1.apply(lambda x: wetbulb(x['Tavg'],x['DewPoint'],x['WetBulb']),axis=1)
 W1['WetBulb']=W1['WetBulb'].astype(float)
 
+import statistics as st
 
-'''################## draft - don't run these lines: #################''' 
-
-
-
-
+def M_rid(col,num,thing='M'):
+    if col==thing:
+        col=num
+    else: 
+        pass
+    return(col)
+    
+W1['Heat']=W1.apply(lambda x: M_rid(x['Heat'],'0'),axis=1)
 ## continuing switching str into int in other columns
 W1['Heat']=W1['Heat'].astype(int)
-sptrainW1['Cool']=sptrainW1['Cool'].astype(int)
-sptrainW1.drop(['Sunrise','Sunset'],1,inplace=True) ## mostly empty
+
+W1['Cool']=W1.apply(lambda x: M_rid(x['Cool'],' 0'),axis=1)
+
+W1['Cool']=W1['Cool'].astype(int)
+
+W1.drop(['Sunrise','Sunset'],1,inplace=True) ## mostly empty
+
+
+
 #Function to turn codes into 2 groups good (' ') and bad weather ( all other codes)
 def codes(col):
     if col==' ':
@@ -276,31 +291,151 @@ def codes(col):
     return(col)
 codes(' ')
 
-sptrainW1['weather_type']=sptrainW1.apply(lambda x: codes(x['CodeSum']), axis=1)
-sptrainW1=pd.get_dummies(sptrainW1,columns=['weather_type'],drop_first=True)
+W1['weather_type']=W1.apply(lambda x: codes(x['CodeSum']), axis=1)
+
+W1=pd.get_dummies(W1,columns=['weather_type'],drop_first=True)
+
 # to check: type sptrainW1.weather_type_Norm.value_counts()
-sptrainW1.drop(['Water1','SnowFall'],1,inplace=True) ## see summary, mostly missing values
+W1.drop(['Water1','SnowFall'],1,inplace=True) ## see summary, mostly missing values
 # PrecipTotal - convert T (trace) to 0.005 (look at summary):
-sptrainW1['PrecipTotal']=sptrainW1['PrecipTotal'].apply(lambda x: 0.005 if x=='  T' else x)
+W1['PrecipTotal']=W1['PrecipTotal'].apply(lambda x: 0.005 if x=='  T' else x)
 #convert 'M' to mode 
-import statistics as st
-mode=st.mode(sptrainW1['PrecipTotal']) # mode is '0'
-sptrainW1['PrecipTotal']=sptrainW1['PrecipTotal'].apply(lambda x: mode if x=='M' else x)
-sptrainW1['PrecipTotal']=sptrainW1['PrecipTotal'].astype(float) # converting to type float.
+mode=st.mode(W1['PrecipTotal']) # mode is '0'
+W1['PrecipTotal']=W1['PrecipTotal'].apply(lambda x: mode if x=='M' else x)
+W1['PrecipTotal']=W1['PrecipTotal'].astype(float) # converting to type float.
  # Depth:
-sptrainW1.drop('Depth',inplace=True,axis=1) # drop, mostly 'M' rest 0 (see summary)
+W1.drop('Depth',inplace=True,axis=1) # drop, mostly 'M' rest 0 (see summary)
 # Stn Pressure:
-moud=st.mode(sptrainW1['StnPressure'])
-sptrainW1['StnPressure']=sptrainW1['StnPressure'].apply(lambda x: moud if x=='M' else x)
-sptrainW1['StnPressure']=sptrainW1['StnPressure'].astype(float)
+moud=st.mode(W1['StnPressure'])
+W1['StnPressure']=W1['StnPressure'].apply(lambda x: moud if x=='M' else x)
+W1['StnPressure']=W1['StnPressure'].astype(float)
 # Sealevel
-sptrainW1['SeaLevel']=sptrainW1['SeaLevel'].astype(float)
+mod=st.mode(W1['SeaLevel'])
+W1['SeaLevel']=W1['SeaLevel'].apply(lambda x: mod if x=='M' else x)
+W1['SeaLevel']=W1['SeaLevel'].astype(float)
+
 ## 'ResultSpeed', 'ResultDir' are good to go (floats no missing value)
-sptrainW1['AvgSpeed']=sptrainW1['AvgSpeed'].astype(float) # turn to float
-# date of colletion
-# let's split the date to day of the month, day of the week, month, year 
-sptrainW1['Day_of_month']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().day)
-sptrainW1['month']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().month)
-sptrainW1['year']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().year)
-sptrainW1['Day_of_week']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().weekday())
-sptrainW1['year']=sptrainW1['year']-(min(sptrainW1['year'])+1)
+mod=st.mode(W1['AvgSpeed'])
+W1['AvgSpeed']=W1['AvgSpeed'].apply(lambda x: mod if x=='M' else x)
+W1['AvgSpeed']=W1['AvgSpeed'].astype(float) # turn to float
+
+'''################## draft - don't run these lines: #################''' 
+
+weather2=weather.copy()
+
+# Functions to use inside weath_eng func:
+#1)
+def tavg_fix(tavg_col,max_col,min_col):
+   # Mind=np.where(W1['Tavg']=='M')
+    if tavg_col=='M':
+        tavg_col=(max_col+min_col)/2
+    else: 
+        pass
+    return(tavg_col)
+    
+#2)
+    # Wetbulb:
+#Since number of missing values are small (26), mode or median would make sense as replacement. 
+# But after doing quick search online, we can approximate WetBulb from DewPoint and 
+# temperature (that we have) with this formula - TAVG-((TAVG-DEWPOINT)/3).
+# Writing a function for wetbulb approximation:
+def wetbulb(tavg,dp,wb):
+    if wb=='M':
+        wb=tavg-(tavg-dp)/3
+    else: 
+        pass
+    return(wb)
+    
+#3)
+import statistics as st
+
+def M_rid(col,num,thing='M'):
+    if col==thing:
+        col=num
+    else: 
+        pass
+    return(col)
+
+#4)
+#Function to turn codes into 2 groups good (' ') and bad weather ( all other codes)
+def codes(col):
+    if col==' ':
+        col='Norm'
+    else:
+        col='Bad'
+    return(col)
+codes(' ')
+
+
+
+####
+def weath_eng(weather_raw):
+###
+
+    W10=weather_raw.copy()
+    
+    W10.drop(['Depart',],1,inplace=True)# Depart - # Most is M missing (8223), so droping that column
+    
+         
+    W10['Tavg']=W10.apply(lambda x: tavg_fix(x['Tavg'],x['Tmax'],x['Tmin']),axis=1)
+    
+    W10['Tavg']=W10['Tavg'].astype(float) ## numbers are stored as str - so turn to float, to manipulate 
+      
+    # applying it to the df:  
+    W10['WetBulb']=W10.apply(lambda x: wetbulb(x['Tavg'],x['DewPoint'],x['WetBulb']),axis=1)
+    W10['WetBulb']=W10['WetBulb'].astype(float)
+    
+        
+    W10['Heat']=W10.apply(lambda x: M_rid(x['Heat'],'0'),axis=1)
+    ## continuing switching str into int in other columns
+    W10['Heat']=W10['Heat'].astype(int)
+    
+    W10['Cool']=W10.apply(lambda x: M_rid(x['Cool'],' 0'),axis=1)
+    
+    W10['Cool']=W10['Cool'].astype(int)
+    
+    W10.drop(['Sunrise','Sunset'],1,inplace=True) ## mostly empty
+    
+    W10['weather_type']=W10.apply(lambda x: codes(x['CodeSum']), axis=1)
+
+    W10=pd.get_dummies(W10,columns=['weather_type'],drop_first=True)
+    
+    # to check: type sptrainW1.weather_type_Norm.value_counts()
+    W10.drop(['Water1','SnowFall'],1,inplace=True) ## see summary, mostly missing values
+    # PrecipTotal - convert T (trace) to 0.005 (look at summary):
+    W10['PrecipTotal']=W10['PrecipTotal'].apply(lambda x: 0.005 if x=='  T' else x)
+    #convert 'M' to mode 
+    mode=st.mode(W10['PrecipTotal']) # mode is '0'
+    W10['PrecipTotal']=W10['PrecipTotal'].apply(lambda x: mode if x=='M' else x)
+    W10['PrecipTotal']=W10['PrecipTotal'].astype(float) # converting to type float.
+     # Depth:
+    W10.drop('Depth',inplace=True,axis=1) # drop, mostly 'M' rest 0 (see summary)
+    # Stn Pressure:
+    moud=st.mode(W10['StnPressure'])
+    W10['StnPressure']=W10['StnPressure'].apply(lambda x: moud if x=='M' else x)
+    W10['StnPressure']=W10['StnPressure'].astype(float)
+    # Sealevel
+    mod=st.mode(W10['SeaLevel'])
+    W10['SeaLevel']=W10['SeaLevel'].apply(lambda x: mod if x=='M' else x)
+    W10['SeaLevel']=W10['SeaLevel'].astype(float)
+
+    ## 'ResultSpeed', 'ResultDir' are good to go (floats no missing value)
+    mod=st.mode(W1['AvgSpeed'])
+    W10['AvgSpeed']=W10['AvgSpeed'].apply(lambda x: mod if x=='M' else x)
+    W10['AvgSpeed']=W10['AvgSpeed'].astype(float) # turn to float
+    
+    return(W10)
+
+weath_out=weath_eng(weather2)
+
+
+
+
+
+
+
+
+
+
+
+
