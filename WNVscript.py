@@ -225,103 +225,6 @@ Weather - 2 weeks feature engineering
 
 #####################################" '''
 
-####
-def weath_eng(weather_raw):
-###
-
-W1=weather.copy()
-
-W1.drop(['Depart',],1,inplace=True)# Depart - # Most is M missing (8223), so droping that column
-
-def tavg_fix(tavg_col,max_col,min_col):
-   # Mind=np.where(W1['Tavg']=='M')
-    if tavg_col=='M':
-        tavg_col=(max_col+min_col)/2
-    else: 
-        pass
-    return(tavg_col)
-     
-W1['Tavg']=W1.apply(lambda x: tavg_fix(x['Tavg'],x['Tmax'],x['Tmin']),axis=1)
-
-W1['Tavg']=W1['Tavg'].astype(float) ## numbers are stored as str - so turn to float, to manipulate 
-
-# Wetbulb:
-#Since number of missing values are small (26), mode or median would make sense as replacement. 
-# But after doing quick search online, we can approximate WetBulb from DewPoint and 
-# temperature (that we have) with this formula - TAVG-((TAVG-DEWPOINT)/3).
-# Writing a function for wetbulb approximation:
-def wetbulb(tavg,dp,wb):
-    if wb=='M':
-        wb=tavg-(tavg-dp)/3
-    else: 
-        pass
-    return(wb)
-  
-# applying it to the df:  
-W1['WetBulb']=W1.apply(lambda x: wetbulb(x['Tavg'],x['DewPoint'],x['WetBulb']),axis=1)
-W1['WetBulb']=W1['WetBulb'].astype(float)
-
-import statistics as st
-
-def M_rid(col,num,thing='M'):
-    if col==thing:
-        col=num
-    else: 
-        pass
-    return(col)
-    
-W1['Heat']=W1.apply(lambda x: M_rid(x['Heat'],'0'),axis=1)
-## continuing switching str into int in other columns
-W1['Heat']=W1['Heat'].astype(int)
-
-W1['Cool']=W1.apply(lambda x: M_rid(x['Cool'],' 0'),axis=1)
-
-W1['Cool']=W1['Cool'].astype(int)
-
-W1.drop(['Sunrise','Sunset'],1,inplace=True) ## mostly empty
-
-
-
-#Function to turn codes into 2 groups good (' ') and bad weather ( all other codes)
-def codes(col):
-    if col==' ':
-        col='Norm'
-    else:
-        col='Bad'
-    return(col)
-codes(' ')
-
-W1['weather_type']=W1.apply(lambda x: codes(x['CodeSum']), axis=1)
-
-W1=pd.get_dummies(W1,columns=['weather_type'],drop_first=True)
-
-# to check: type sptrainW1.weather_type_Norm.value_counts()
-W1.drop(['Water1','SnowFall'],1,inplace=True) ## see summary, mostly missing values
-# PrecipTotal - convert T (trace) to 0.005 (look at summary):
-W1['PrecipTotal']=W1['PrecipTotal'].apply(lambda x: 0.005 if x=='  T' else x)
-#convert 'M' to mode 
-mode=st.mode(W1['PrecipTotal']) # mode is '0'
-W1['PrecipTotal']=W1['PrecipTotal'].apply(lambda x: mode if x=='M' else x)
-W1['PrecipTotal']=W1['PrecipTotal'].astype(float) # converting to type float.
- # Depth:
-W1.drop('Depth',inplace=True,axis=1) # drop, mostly 'M' rest 0 (see summary)
-# Stn Pressure:
-moud=st.mode(W1['StnPressure'])
-W1['StnPressure']=W1['StnPressure'].apply(lambda x: moud if x=='M' else x)
-W1['StnPressure']=W1['StnPressure'].astype(float)
-# Sealevel
-mod=st.mode(W1['SeaLevel'])
-W1['SeaLevel']=W1['SeaLevel'].apply(lambda x: mod if x=='M' else x)
-W1['SeaLevel']=W1['SeaLevel'].astype(float)
-
-## 'ResultSpeed', 'ResultDir' are good to go (floats no missing value)
-mod=st.mode(W1['AvgSpeed'])
-W1['AvgSpeed']=W1['AvgSpeed'].apply(lambda x: mod if x=='M' else x)
-W1['AvgSpeed']=W1['AvgSpeed'].astype(float) # turn to float
-
-'''################## draft - don't run these lines: #################''' 
-
-weather2=weather.copy()
 
 # Functions to use inside weath_eng func:
 #1)
@@ -420,15 +323,61 @@ def weath_eng(weather_raw):
     W10['SeaLevel']=W10['SeaLevel'].astype(float)
 
     ## 'ResultSpeed', 'ResultDir' are good to go (floats no missing value)
-    mod=st.mode(W1['AvgSpeed'])
+    mod=st.mode(W10['AvgSpeed'])
     W10['AvgSpeed']=W10['AvgSpeed'].apply(lambda x: mod if x=='M' else x)
     W10['AvgSpeed']=W10['AvgSpeed'].astype(float) # turn to float
     
     return(W10)
 
-weath_out=weath_eng(weather2)
+weath_out=weath_eng(weather)
 
 
+'''#####################################
+Draft - do not run
+########################################'''
+
+# functions to make 14 day summary 
+# summary of one day
+## important - column need to be clean, and dtype: int or float
+import scipy.stats as scist
+
+def get_summary(colum):
+    des=colum.describe()  # use describe to get summary
+    des=pd.DataFrame(des)  # turn into data frame
+    desT=des.T  # transpose describe to a table 
+    desT.rename(columns={'mean':desT.index[0]+'.'+'mean','std':desT.index[0]+'.'+'std',
+                    '50%':desT.index[0]+'.'+'50%'},inplace=True) ## rename columns
+    desT.drop(['count','min','25%','75%','max'],1,inplace=True)
+    desT[desT.index[0]+'.'+'mean-median']=desT[desT.index[0]+'.'+'mean']-desT[desT.index[0]+'.'+'50%'] # add mean-median
+    outliers_low=sum((scist.zscore(colum)<-2))
+    outliers_high=sum((scist.zscore(colum)>2))
+    desT[desT.index[0]+'.'+'outliers_low']=outliers_low ## add outliers
+    desT[desT.index[0]+'.'+'outliers_high']=outliers_high
+    desT.reset_index(drop=True,inplace=True)
+    return desT
+
+## using summary of one day to run on 14 days and make a summary:
+def fourteen(col_date,station,cols,num_days=14):   # get the 14 day batch of a collection date
+    # col_date is one Date of collection 
+    # list of columns we'd like to use for the summary of the batch 
+    ind=np.where((col_date==weath_out['Date'])
+             &(station==weath_out['Station']))
+    indt=int(ind[0])
+    datee=weath_out.loc[indt,'Date']
+    datee=pd.Series(datee)
+    stat=pd.Series(station)
+    dd=weath_out.iloc[(indt-(num_days*2)):indt,]
+    ddd=dd[dd['Station']==station] # the 14 day (default) batch
+    ss=pd.DataFrame()
+    ss=pd.concat([ss,datee,stat],axis=1)
+    for col in cols:
+        summ=get_summary(ddd[col])
+        ss=pd.concat([ss,summ],axis=1)
+#     print(ss)
+#     print('shape',ss.shape)
+#     print('type',type(ss))
+#     print('####')
+    return(ss)
 
 
 
