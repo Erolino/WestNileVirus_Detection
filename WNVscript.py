@@ -333,7 +333,10 @@ weath_out=weath_eng(weather)
 
 
 '''#####################################
-Draft - do not run
+
+Functions to engineer weather data into summaries (mean,std etc..) of 
+last 14 days for every trap collection (observation) 
+ 
 ########################################'''
 
 # functions to make 14 day summary 
@@ -379,9 +382,49 @@ def fourteen(col_date,station,cols,num_days=14):   # get the 14 day batch of a c
 #     print('####')
     return(ss)
 
+## script to create the engineered features for 14 days:
+
+int_feat=['Tmax', 'Tmin', 'Tavg', 'DewPoint', 
+          'WetBulb','Heat', 'Cool', 'PrecipTotal', 'StnPressure',
+          'ResultSpeed','ResultDir', 'AvgSpeed', 'weather_type_Norm']
+# tried to do it with apply and lambda, but there seems to be a bug. have to use for loop to run on the whole data set
+# which will be very slow.
+# this is how it should be done with apply:
+#  rrr.iloc[34:46]=sptrainW2.iloc[0:3,:].apply(lambda x: fourteen(x['Date_of_collection'],x['Station'],
+#                        ['ResultSpeed','Tmax']),axis=1)
+import time
+
+def make_features(clean_weath,feat_of_interest):   ## input clean weather data, and list of feature names to engineer
+    tt=time.time()
+    sso=pd.DataFrame()
+    for i in range(clean_weath.shape[0]):
+        row=fourteen(sptrainW2.loc[i,'Date_of_collection'],sptrainW2.loc[i,'Station'],feat_of_interest)
+        sso=pd.concat([sso,row],axis=0)
+        #if i==12:
+         #   break
+    sso.drop(['weather_type_Norm.std','weather_type_Norm.50%','weather_type_Norm.mean-median',
+              'weather_type_Norm.outliers_low','weather_type_Norm.outliers_high'],1,inplace=True)
+    sso.rename(columns={0:'Date_colect',1:'station'},inplace=True)
+    ttt=time.time()
+    print('time of running:',ttt-tt)
+    print('new data shape: ',sso.shape)
+    return(sso)
+
+## warnning: this could take a while (approx 241 seconds)
+## turn statement into True to run the function
+if 1==0:
+    eng_weath=make_features(weath_out,int_feat) 
+
+#eng_weath.shape=(2944, 75)
+#sptrainW2.shape=(10506, 35)
 
 
-
+# merging spray&weather df (with weather on the day of) with engneered weather
+sptrain_engW=pd.merge(sptrainW2,eng_weath,left_on=['Date_of_collection','Station'],right_on=['Date_colect','station'],indicator=True)
+## Getting a massive df because of duplicates. getting rid of them:
+# sptrain_engW.shape=(293598, 111)
+yep=sptrain_engW.drop_duplicates()
+#yep.shape=(9296, 111)
 
 
 
