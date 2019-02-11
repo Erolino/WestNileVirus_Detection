@@ -410,6 +410,7 @@ def make_features(clean_weath,feat_of_interest):   ## input clean weather data, 
     print('new data shape: ',sso.shape)
     return(sso)
 
+''' Let's run the function and get the engineered weather data '''
 ## warnning: this could take a while (approx 241 seconds)
 ## turn statement into True to run the function
 if 1==0:
@@ -426,8 +427,12 @@ sptrain_engW=pd.merge(sptrainW2,eng_weath,left_on=['Date_of_collection','Station
 yep=sptrain_engW.drop_duplicates()
 #yep.shape=(9296, 111)
 
+## DROP THE "OF THE DAY" WEATHER DATA FEATURES.
+yep.drop(['Tmax', 'Tmin', 'Tavg', 'DewPoint',
+       'WetBulb', 'Heat', 'Cool', 'PrecipTotal', 'StnPressure', 'SeaLevel',
+       'ResultSpeed', 'ResultDir', 'AvgSpeed', 'weather_type_Norm'],1,inplace=True)
 
+yep.drop(['Date_colect','Station','_merge'],1,inplace=True)
 
-
-
+yep.drop(['Date_of_collection'],1,inplace=True)
 
