@@ -24,6 +24,35 @@ train=pd.read_csv(os.path.join(directory_path,'all/train.csv'))
 train1=pd.get_dummies(train,columns=['Species'],drop_first=True)    
 train1['Date']=pd.to_datetime(train1['Date'])
 
+# EDA function, visualization of where and when collections and viruses occured:
+import matplotlib.pyplot as plt
+import seaborn as sns
+train2=train1.copy()
+def pltloglat(period,yearr=2007):
+    if period==month:
+        period=['May','June','July', 'August','September','October']
+    if period==year:
+        period=[2007,2009,2011,2013]
+    DATA=train2
+    fig,ax = plt.subplots(nrows=1,ncols=len(period), sharey=True)
+    if len(period)==6:
+        fig.set_size_inches(15, 4)
+        print('Year -',yearr)
+    elif len(period)==4:
+        fig.set_size_inches(15, 5)        
+    for ii,ob in enumerate(period):
+        if len(period)==6: 
+            train_0=DATA[(DATA['year']==yearr)&(DATA['WnvPresent']==0)&(DATA['month']==ii+5)]
+            train_1=DATA[(DATA['year']==yearr)&(DATA['WnvPresent']==1)&(DATA['month']==ii+5)]
+        elif len(period)==4:
+            train_0=DATA[(DATA['year']==period[ii])&(DATA['WnvPresent']==0)]
+            train_1=DATA[(DATA['year']==period[ii])&(DATA['WnvPresent']==1)]   
+        ax[ii].set_title(ob)
+        ax[ii].set_xlim([-88.0,-87.5])
+        sns.regplot('Longitude','Latitude',data=train_0,fit_reg=False,ax=ax[ii],color='steelblue')
+        sns.regplot('Longitude','Latitude',data=train_1,fit_reg=False,ax=ax[ii],color='orange',marker='+',)
+        
+
 # Let's create a function that finds the days since the most recent spray, 
 # given a date of collection minus dates of spraying:
 def recent(delMin,delMax):
@@ -195,7 +224,7 @@ sptrainW1['AvgSpeed']=sptrainW1['AvgSpeed'].astype(float) # turn to float
 # let's split the date to day of the month, day of the week, month, year the strongest 
 # effect would probably be the month (where the hottest months will have highest frequency of WNV), 
 # and maybe recent years have been hotter, maybe traps collected on Monday have more mosquitos in them? etc.
-.
+
 sptrainW1['Day_of_month']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().day)
 sptrainW1['month']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().month)
 sptrainW1['year']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().year)
