@@ -102,6 +102,9 @@ weather=pd.read_csv(weather_csv)
 # assumption: long and lat have the same resolution when converted to distance.
 # for distance calculation using: distance^2=long^2+lat^2
 
+# Reminder the geo-location of the stations: 
+# Station 1: CHICAGO O'HARE INTERNATIONAL AIRPORT Lat: 41.995 Lon: -87.933 Elev: 662 ft. above sea level
+# Station 2: CHICAGO MIDWAY INTL ARPT Lat: 41.786 Lon: -87.752 Elev: 612 ft. above sea level
 import random
 def stationing(long,lat):
     sta1={'long':-87.933,'lat': 41.995}
@@ -189,7 +192,10 @@ sptrainW1['SeaLevel']=sptrainW1['SeaLevel'].astype(float)
 ## 'ResultSpeed', 'ResultDir' are good to go (floats no missing value)
 sptrainW1['AvgSpeed']=sptrainW1['AvgSpeed'].astype(float) # turn to float
 # date of colletion
-# let's split the date to day of the month, day of the week, month, year 
+# let's split the date to day of the month, day of the week, month, year the strongest 
+# effect would probably be the month (where the hottest months will have highest frequency of WNV), 
+# and maybe recent years have been hotter, maybe traps collected on Monday have more mosquitos in them? etc.
+.
 sptrainW1['Day_of_month']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().day)
 sptrainW1['month']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().month)
 sptrainW1['year']=sptrainW1['Date_of_collection'].apply(lambda x: x.to_pydatetime().year)

@@ -187,7 +187,7 @@ if 1==0:
     GSrfAUCeng=grid_func('aucroc_score','sptrainW_14_day') ## for day-of input the 
     
 
-if 1==0:
+if 1==0: ## the following aggregates and presents the results from the above gridsearch objects
     result=pd.DataFrame(GSrf2.cv_results_)
     result.sort_values(['mean_test_aucroc_score','mean_test_recall_score'],inplace=True)
     result[[ 'mean_test_aucroc_score','mean_test_recall_score','mean_test_precision_score', 'mean_test_accuracy_score','param_max_depth', 'param_max_features', 'param_min_samples_split', 'param_n_estimators']].round(3).head()
@@ -219,6 +219,59 @@ if 1==0:
     roww3=np.where(resultEngAuc['mean_test_aucroc_score']==max(resultEngAuc['mean_test_aucroc_score']))
     ### give the winning row for highest AUC:
     winAucresultEng=resultEngAuc.loc[roww3[0],[ 'mean_test_aucroc_score','mean_test_recall_score','mean_test_precision_score', 'mean_test_accuracy_score','param_max_depth', 'param_max_features', 'param_min_samples_split', 'param_n_estimators']]
+
+'''#################################'''
+
+'''Running final model, using plotting function to summarize'''
+
+'''#################################'''
+
+
+'''Let's use these 'winning' parameters to run a RF model 
+again, for further data analysis '''
+## winAUCresult[['param_max_depth','param_max_features','param_min_samples_split','param_n_estimators']]
+
+# lat's put them manualy:
+win_params={'n_estimators':500,'min_samples_split':3,'max_features':20,'max_depth':5}
+
+rfwin=RandomForestClassifier(random_state=42,n_estimators=win_params['n_estimators'],
+                             min_samples_split=win_params['min_samples_split'],
+                             max_features=win_params['max_features'],
+                             max_depth=win_params['max_depth'])
+rfwin.fit(Xtrain,ytrain)
+predy=rfwin.predict(Xtest)
+predprob=rfwin.predict_proba(Xtest)
+fpr, tpr, thresholds = roc_curve(ytest, predprob[:,1])
+precision, recall, threshol=precision_recall_curve(ytest, predprob[:,1])
+
+def plt_curvs(ytest, predprob):
+    ###
+    fpr, tpr, thresholds = roc_curve(ytest, predprob[:,1])
+    precision, recall, threshol=precision_recall_curve(ytest, predprob[:,1])
+    ###
+    print("roc_auc_score: ",round(roc_auc_score(ytest, predprob[:,1]),3))
+    print("precision-recall_auc_score: ",round(auc(recall,precision),3))
+    plt.subplots(figsize=(16,3))
+    plt.subplot(1,3,1)
+    xx=np.linspace(0,1,1000)
+    yy=xx
+    plt.plot(xx,yy,'--')
+    plt.plot(fpr,tpr)
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    #
+    plt.subplot(1,3,2)
+    plt.plot([0,1],[0.01,0.01],'--')
+    plt.plot(recall,precision,color='orange')
+    plt.xlabel('recall')
+    j=plt.ylabel('precision')
+    #
+    plt.subplot(1,3,3)
+    plt.plot(threshol,precision[:-1],'gold',label="Precision")
+    plt.plot(threshol,recall[:-1],'purple',label='Recall')
+    plt.xlabel('Thresholds')
+    j=plt.ylabel('Score')
+    plt.legend(loc='best')
 
 '''#################################'''
 
