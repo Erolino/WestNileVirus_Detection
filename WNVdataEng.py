@@ -29,9 +29,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 train2=train1.copy()
 def pltloglat(period,yearr=2007):
-    if period==month:
+    if period=='month':
         period=['May','June','July', 'August','September','October']
-    if period==year:
+    if period=='year':
         period=[2007,2009,2011,2013]
     DATA=train2
     fig,ax = plt.subplots(nrows=1,ncols=len(period), sharey=True)
@@ -51,7 +51,9 @@ def pltloglat(period,yearr=2007):
         ax[ii].set_xlim([-88.0,-87.5])
         sns.regplot('Longitude','Latitude',data=train_0,fit_reg=False,ax=ax[ii],color='steelblue')
         sns.regplot('Longitude','Latitude',data=train_1,fit_reg=False,ax=ax[ii],color='orange',marker='+',)
+
         
+spray=pd.read_csv(os.path.join(directory_path,'all/spray.csv'))
 
 # Let's create a function that finds the days since the most recent spray, 
 # given a date of collection minus dates of spraying:
@@ -74,8 +76,12 @@ def recent(delMin,delMax):
     return(dell)
 #def engineerSP(spray):
  
-spray=pd.read_csv(os.path.join(directory_path,'all/spray.csv'))
+
 spray1=spray.copy()
+# because geo-location has such high resolution, we can't find matches between the data 
+#sets (which doesn't allow us to merge the tables accordingly). so 3 digits after the 
+# point seems reasonable - equates to 100 meters in resolution ( according to quick 
+# exploration on google maps: .001 ~=100 Meters)
 spray1['Longitude']=spray['Longitude'].round(3) ## rounding to match longitudes in train data (resolution of 100 M)
 spray1['Latitude']=spray['Latitude'].round(3)
 train1['Longitude']=train1['Longitude'].round(3)
@@ -173,6 +179,7 @@ sptrainW1.drop(['Depart',],1,inplace=True)# Depart - # Most is M missing (8223),
 #Since number of missing values are small (26), mode or median would make sense as replacement. 
 # But after doing quick search online, we can approximate WetBulb from DewPoint and 
 # temperature (that we have) with this formula - TAVG-((TAVG-DEWPOINT)/3).
+# (resource: http://theweatherprediction.com/habyhints/170/ )
 # Writing a function for wetbulb approximation:
 def wetbulb(tavg,dp,wb):
     if wb=='M':
@@ -191,6 +198,7 @@ sptrainW1['Heat']=sptrainW1['Heat'].astype(int)
 sptrainW1['Cool']=sptrainW1['Cool'].astype(int)
 sptrainW1.drop(['Sunrise','Sunset'],1,inplace=True) ## mostly empty
 #Function to turn codes into 2 groups good (' ') and bad weather ( all other codes)
+# the assumption is that all codes are related to bad weather..
 def codes(col):
     if col==' ':
         col='Norm'
