@@ -21,6 +21,9 @@ sptrainW_day_of=pd.read_csv(os.path.join(directory_path,'sptrainW_day_of.csv'))
 sptrainW_day_of.drop('Unnamed: 0',1,inplace=True)
 sptrainW_14_days=pd.read_csv(os.path.join(directory_path,'sptrainW_14_days.csv'))
 sptrainW_14_days.drop('Unnamed: 0',1,inplace=True)
+sptrainW_14_days_mos=pd.read_csv(os.path.join(directory_path,'sptrainW_14_days_mos.csv'))
+sptrainW_14_days_mos.drop('Unnamed: 0',1,inplace=True)
+
 
 '''importing models '''
 from sklearn.model_selection import train_test_split
@@ -278,3 +281,36 @@ def plt_curvs(ytest, predprob):
 '''draft DO NOT run from this point'''
 
 '''#################################'''
+
+''' The following function is number of mosquitos prediction section '''
+
+''' Pseudo Code: 
+    
+    import regression tree model
+    regtree=regression_tree()
+    regtree.fit()
+    
+    Change the following grid_func for regression:'''
+
+if 1==0:
+    def grid_func_reg(the_score,jj,target): ## jj is the string name of the dataset
+        
+        #optimize hyper parametrs using grid search according to one of the scores that is input
+        skf=StratifiedKFold(n_splits=5) ## stratifying the crossvalidation and choosing the number of splits=10
+        GS=GridSearchCV(rfclf2,param_grid=paramgrid,scoring=scorers,refit=the_score,cv=skf,return_train_score='True',n_jobs=-1)
+        
+        ## choose dataset
+        Xtrain,Xtest,ytrain,ytest=train_test_split(datasets[jj].drop(target,1),datasets[jj][target],test_size=0.2,random_state=42,stratify=datasets[jj][target])
+        Xtrain,ytrain=smt.fit_sample(Xtrain,ytrain)
+        #with parallel_backend('threading'):
+        GS.fit(Xtrain,ytrain)
+        
+        prediction=GS.predict(Xtest)
+        
+        print('best params for {}'.format(the_score))
+        print(GS.best_params_)
+        
+        print('confusion matrix adjusted for max {}'.format(the_score))
+        print(confusion_matrix(prediction,ytest))
+        
+        return(GS)
